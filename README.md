@@ -1,0 +1,2 @@
+# threejs_earth_satellite
+使用threejs实现地球自转以及卫星围绕旋转的效果
