@@ -35,6 +35,7 @@
 				NEAR = 1,
 				FAR = 20000;
 			var earth;
+			var moon;
 			var satellites = {}
 
 			init();
@@ -50,7 +51,7 @@
 
 				camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 
-				camera.position.set(0, 1000, 1500);
+				camera.position.set(0, 1000, 2500);
 				camera.up.x = 0;
 				camera.up.y = 1;
 				camera.up.z = 0;
@@ -85,37 +86,42 @@
 			}
 
 			//初始化地球
-			function initEarth() {
+			function initEarthAndMoon() {
 
+				earth = initObject('img/earth.jpg', 800, 64, 64)
+				scene.add(earth);
+				moon = initObject('img/moon.jpg', 50, 30, 30)
+				moon.position.set(2000, 0, 0);
+				initTrackAndObj(moon, 2000, -Math.PI * 0.60, Math.PI * 0.06, 0, "3")
+				//初始化卫星
+				initSatellite(1000, -Math.PI * 0.60, Math.PI * 0.02, 0, "1");
+				initSatellite(1000, -Math.PI * 0.02, Math.PI * 0.60, 0, "2");
+			}
+			
+			
+			function initObject(path, radius, segemnt, rings) {
 				var manager = new THREE.LoadingManager();
 				manager.onProgress = function(item, loaded, total) {};
+				
 				var texture = new THREE.Texture();
 				var loader = new THREE.ImageLoader(manager);
-				loader.load('img/earth_color.jpg', function(image) {
+				loader.load(path, function(image) {
 					texture.image = image;
 					texture.needsUpdate = true;
 				});
 
-				var radius = 800,
-					segemnt = 64,
-					rings = 64;
-				var earthMaterial = new THREE.MeshBasicMaterial({
+				var material = new THREE.MeshBasicMaterial({
 					map: texture,
 					side: THREE.DoubleSide
 				});
-				earth = new THREE.Mesh(
+				var obj = new THREE.Mesh(
 					new THREE.SphereGeometry(radius, segemnt, rings),
-					earthMaterial
+					material
 				);
 
-				earth.geometry.verticesNeedUpdate = true;
-				earth.geometry.normalsNeedUpdate = true;
-
-				scene.add(earth);
-
-				//初始化卫星
-				initSatellite(1000, -Math.PI * 0.60, Math.PI * 0.02, 0, "1");
-				initSatellite(1000, -Math.PI * 0.02, Math.PI * 0.60, 0, "2");
+//				scene.add(obj);
+				
+				return obj;
 			}
 
 			//初始化卫星
@@ -126,23 +132,27 @@
 					var objLoader = new THREE.OBJLoader();
 					objLoader.setMaterials(materials);
 					objLoader.load('obj/satellite.obj', function(object) {
-						var track = new THREE.Mesh(new THREE.RingGeometry(radius, radius + 1, 64, 1), new THREE.MeshBasicMaterial({
-							side: THREE.DoubleSide
-						}));
-						var centerMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 1, 1), new THREE.MeshLambertMaterial());
-
 						object.scale.set(0.08, 0.08, 0.08);
 						object.position.set(radius, 0, 0);
-
-						var pivotPoint = new THREE.Object3D();
-						pivotPoint.add(object);
-						pivotPoint.add(track);
-						centerMesh.add(pivotPoint);
-						centerMesh.rotation.set(x, y, z);
-						satellites[flag] = centerMesh;
-						scene.add(centerMesh);
+						initTrackAndObj(object, radius, x, y, z, flag);
 					});
 				});
+			}
+			
+			// 初始化轨道以及卫星
+			function initTrackAndObj(object , radius, x, y, z, flag) {
+				var track = new THREE.Mesh(new THREE.RingGeometry(radius, radius + 1, 64, 1), new THREE.MeshBasicMaterial({
+					side: THREE.DoubleSide
+				}));
+				var centerMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 1, 1), new THREE.MeshLambertMaterial());
+				var pivotPoint = new THREE.Object3D();
+				
+				pivotPoint.add(object);
+				pivotPoint.add(track);
+				centerMesh.add(pivotPoint);
+				centerMesh.rotation.set(x, y, z);
+				satellites[flag] = centerMesh;
+				scene.add(centerMesh);
 			}
 
 			//初始化函数 		
@@ -152,7 +162,7 @@
 				initRender();
 				initControls();
 				initLight();
-				initEarth();
+				initEarthAndMoon();
 			}
 
 			function animate() {
@@ -160,6 +170,7 @@
 				if(satellites["1"] != undefined && satellites["2"] != undefined) {
 					satellites["1"].rotateZ(-0.01);
 					satellites["2"].rotateZ(0.01);
+					satellites["3"].rotateZ(-0.01);
 				}
 				//地球自转
 				earth.rotateY(-0.01);
